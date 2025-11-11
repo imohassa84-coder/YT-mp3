@@ -41,12 +41,8 @@ export default function ClientLayout({
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center">
-              <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" />
-              </svg>
-            </div>
-            <h1 className="text-2xl font-bold text-foreground">MusiqHub</h1>
+            <div className="text-4xl">🧙‍♀️</div>
+            <h1 className="text-2xl font-bold text-foreground">Yaelokre's diary</h1>
           </div>
           <button
             onClick={toggleTheme}

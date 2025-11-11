@@ -5,6 +5,12 @@ import ClientLayout from "./_clientLayout"
 
 const _geist = Geist({ subsets: ["latin"] })
 
+export const metadata = {
+  title: "Yaelokre's diary - Music Search & Lyrics",
+  description: "Search YouTube, view lyrics, and download music with Yaelokre's diary",
+  generator: 'v0.app'
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -18,7 +24,3 @@ export default function RootLayout({
     </html>
   )
 }
-
-export const metadata = {
-      generator: 'v0.app'
-    };
