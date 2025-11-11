@@ -41,7 +41,7 @@ export default function ClientLayout({
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="Yaelokre's diary logo" className="w-10 h-10 object-contain" />
+            <img src="/logo.png" alt="Yaelokre's diary logo" className="w-10 h-10 object-contain dark:invert" />
             <h1 className="text-2xl font-bold text-foreground">Yaelokre's diary</h1>
           </div>
           <button
