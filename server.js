@@ -191,80 +191,104 @@ app.get("/api/ytsearch", async (req, res) => {
 });
 
 // Convert YouTube video to MP3 and stream it back
-app.get("/api/ytmp3", (req, res) => {
+app.get("/api/ytmp3", async (req, res) => {
   const videoId = (req.query.id || "").trim();
-  console.log(`[ytmp3] Route called with videoId: ${videoId}`);
-  
-  if (!videoId) {
-    console.log("[ytmp3] No video ID");
-    return res.status(400).json({ error: "id query param required" });
-  }
+  if (!videoId) return res.status(400).json({ error: "id query param required" });
 
   try {
     const cp = require("child_process");
-    console.log(`[ytmp3] Starting yt-dlp for ${videoId}`);
+    const fs = require("fs");
+    const path = require("path");
+    const os = require("os");
 
-    // Use yt-dlp to stream audio, pipe through FFmpeg to convert to MP3
+    console.log(`[ytmp3] Starting download for ${videoId}`);
+
+    const tempDir = os.tmpdir();
+    const outputFile = path.join(tempDir, `ytmp3_${videoId}_${Date.now()}.m4a`);
+
+    // Spawn yt-dlp to download best audio format
     const ytdlp = cp.spawn("yt-dlp", [
       "-f",
       "bestaudio",
       "-o",
-      "-",
+      outputFile,
       `https://www.youtube.com/watch?v=${videoId}`,
     ]);
 
-    const ffmpeg = require("fluent-ffmpeg");
-    
-    // Process the audio stream through FFmpeg to convert to MP3
-    const ffmpegCmd = ffmpeg()
-      .input(ytdlp.stdout)
-      .noVideo()
-      .audioCodec("libmp3lame")
-      .audioBitrate("192k")
-      .format("mp3")
-      .on("start", () => {
-        console.log("[ytmp3] FFmpeg conversion started");
-      })
-      .on("error", (err) => {
-        console.error("[ytmp3] FFmpeg error:", err.message);
-        ytdlp.kill();
-        if (!res.headersSent) {
-          res.status(500).json({ error: "Conversion failed", details: err.message });
-        }
-      })
-      .on("end", () => {
-        console.log("[ytmp3] FFmpeg conversion complete");
-      });
+    let downloadError = "";
 
     ytdlp.stderr.on("data", (data) => {
-      console.log("[yt-dlp]", data.toString());
-    });
-
-    ytdlp.on("error", (err) => {
-      console.error("[ytmp3] yt-dlp error:", err.message);
-      if (!res.headersSent) {
-        res.status(500).json({ error: "Download failed", details: err.message });
-      }
+      const msg = data.toString();
+      downloadError += msg;
+      console.log("[yt-dlp]", msg);
     });
 
     ytdlp.on("close", (code) => {
       if (code !== 0) {
-        console.error("[ytmp3] yt-dlp exited with code", code);
+        console.error(`[ytmp3] yt-dlp failed with code ${code}`);
+        if (!res.headersSent) {
+          res.status(500).json({ error: "Download failed", details: downloadError });
+        }
+        return;
       }
+
+      // Check if file exists
+      if (!fs.existsSync(outputFile)) {
+        console.error("[ytmp3] Output file not created");
+        if (!res.headersSent) {
+          res.status(500).json({ error: "File not created" });
+        }
+        return;
+      }
+
+      const stats = fs.statSync(outputFile);
+      console.log(`[ytmp3] Downloaded ${stats.size} bytes`);
+
+      if (stats.size === 0) {
+        console.error("[ytmp3] File is empty");
+        if (!res.headersSent) {
+          res.status(500).json({ error: "File is empty" });
+        }
+        fs.unlinkSync(outputFile);
+        return;
+      }
+
+      // Send file as audio/webm (can be played in browser)
+      res.setHeader("Content-Type", "audio/webm");
+      res.setHeader("Content-Disposition", `inline; filename="${videoId}.webm"`);
+      res.setHeader("Content-Length", stats.size);
+
+      const stream = fs.createReadStream(outputFile);
+
+      stream.on("end", () => {
+        console.log("[ytmp3] Stream complete, cleaning up");
+        try {
+          fs.unlinkSync(outputFile);
+        } catch (e) {
+          console.error("[ytmp3] Cleanup error:", e.message);
+        }
+      });
+
+      stream.on("error", (err) => {
+        console.error("[ytmp3] Stream error:", err.message);
+        if (!res.headersSent) {
+          res.status(500).json({ error: "Stream failed" });
+        }
+      });
+
+      stream.pipe(res);
     });
 
-    // Set response headers
-    res.setHeader("Content-Type", "audio/mpeg");
-    res.setHeader("Content-Disposition", `inline; filename="${videoId}.mp3"`);
-
-    console.log(`[ytmp3] Piping FFmpeg output to response`);
-    // Pipe FFmpeg output to response
-    ffmpegCmd.pipe(res, { end: true });
-
+    ytdlp.on("error", (err) => {
+      console.error("[ytmp3] Spawn error:", err.message);
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Could not start download" });
+      }
+    });
   } catch (err) {
     console.error("[ytmp3] Error:", err.message);
     if (!res.headersSent) {
-      res.status(500).json({ error: "Internal error", details: err.message });
+      res.status(500).json({ error: "Internal error" });
     }
   }
 });
