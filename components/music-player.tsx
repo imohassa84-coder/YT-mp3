@@ -28,28 +28,35 @@ export default function MusicPlayer({ track }: MusicPlayerProps) {
   const playerInstanceRef = useRef<any>(null);
 
   useEffect(() => {
-    // Load YouTube IFrame API
+    // Load YouTube IFrame API if not already loaded
     if (!window.YT) {
       const tag = document.createElement("script");
       tag.src = "https://www.youtube.com/iframe_api";
       document.body.appendChild(tag);
     }
 
-    // Wait a bit for YouTube API to load
+    // Wait for YouTube API to be ready
     const timer = setTimeout(() => {
-      if (window.YT && playerRef.current && !playerInstanceRef.current) {
-        playerInstanceRef.current = new window.YT.Player(playerRef.current, {
-          height: "100%",
-          width: "100%",
-          videoId: track.id,
-          playerVars: {
-            autoplay: 0,
-            controls: 1,
-            rel: 0,
-          },
-        });
+      if (window.YT && window.YT.Player && playerRef.current) {
+        // If player already exists, just load the new video
+        if (playerInstanceRef.current) {
+          playerInstanceRef.current.loadVideoById(track.id);
+        } else {
+          // Create new player
+          playerInstanceRef.current = new window.YT.Player(playerRef.current, {
+            height: "100%",
+            width: "100%",
+            videoId: track.id,
+            playerVars: {
+              autoplay: 0,
+              controls: 1,
+              rel: 0,
+              modestbranding: 1,
+            },
+          });
+        }
       }
-    }, 500);
+    }, 300);
 
     return () => clearTimeout(timer);
   }, [track.id]);
