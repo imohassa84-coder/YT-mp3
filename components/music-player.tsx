@@ -64,15 +64,28 @@ export default function MusicPlayer({ track }: MusicPlayerProps) {
       });
 
       if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `${track.title}.mp3`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
+        const data = await response.json();
+        
+        // If we got a download URL (from RapidAPI), open it directly
+        if (data.downloadUrl) {
+          const a = document.createElement("a");
+          a.href = data.downloadUrl;
+          a.download = `${track.title}.mp3`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        } else {
+          // Otherwise treat it as a blob response
+          const blob = await response.blob();
+          const url = window.URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = `${track.title}.mp3`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          window.URL.revokeObjectURL(url);
+        }
       } else {
         alert("Failed to download MP3");
       }

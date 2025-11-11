@@ -14,54 +14,33 @@ export async function GET(request: NextRequest) {
 
     console.log(`[MP3 Conversion] Starting conversion for video: ${videoId}`);
 
-    // Proxy the MP3 conversion request to the local server
-    const response = await fetch(
-      `http://localhost:3001/api/ytmp3?id=${encodeURIComponent(videoId)}`,
-      {
-        method: "GET",
-        headers: {
-          "Accept": "audio/mpeg",
-        },
-      }
-    );
+    // Use RapidAPI for MP3 conversion (works on Netlify)
+    const rapidApiKey = process.env.RAPIDAPI_KEY || "1f88695774msh719cb026ed51d53p188d16jsn409cfafa8249";
+    const rapidApiHost = "youtube-video-download-info.p.rapidapi.com";
 
-    console.log(`[MP3 Conversion] Response status: ${response.status}`);
-    console.log(`[MP3 Conversion] Response headers:`, {
-      contentType: response.headers.get("content-type"),
-      contentLength: response.headers.get("content-length"),
+    const rapidUrl = `https://${rapidApiHost}/dl?id=${encodeURIComponent(videoId)}`;
+
+    const response = await fetch(rapidUrl, {
+      method: "GET",
+      headers: {
+        "X-RapidAPI-Key": rapidApiKey,
+        "X-RapidAPI-Host": rapidApiHost,
+      },
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`[MP3 Conversion] Error response: ${errorText}`);
+    const data = await response.json();
+
+    if (!response.ok || !data.mp3) {
       return NextResponse.json(
-        { error: `Failed to convert to MP3: ${response.status}` },
-        { status: response.status }
+        { error: "Failed to convert to MP3", details: data.error || "Unknown error" },
+        { status: 502 }
       );
     }
 
-    // Get the audio stream
-    const buffer = await response.arrayBuffer();
-    console.log(`[MP3 Conversion] Received buffer size: ${buffer.byteLength} bytes`);
-
-    if (buffer.byteLength === 0) {
-      console.error("[MP3 Conversion] Buffer is empty!");
-      return NextResponse.json(
-        { error: "MP3 conversion returned empty file" },
-        { status: 500 }
-      );
-    }
-
-    // Return the MP3 file with proper headers
-    return new NextResponse(buffer, {
-      status: 200,
-      headers: {
-        "Content-Type": "audio/mpeg",
-        "Content-Length": buffer.byteLength.toString(),
-        "Content-Disposition": `attachment; filename="${(
-          title || videoId
-        ).replace(/[^a-z0-9]/gi, "_")}.mp3"`,
-      },
+    // Return the MP3 URL for download
+    return NextResponse.json({
+      downloadUrl: data.mp3,
+      title: data.title || title || videoId,
     });
   } catch (error) {
     console.error("[MP3 Conversion] Error:", error);
@@ -81,54 +60,33 @@ export async function POST(request: NextRequest) {
 
     console.log(`[MP3 Conversion] Starting conversion for video: ${videoId}`);
 
-    // Proxy the MP3 conversion request to the local server
-    const response = await fetch(
-      `http://localhost:3001/api/ytmp3?id=${encodeURIComponent(videoId)}`,
-      {
-        method: "GET",
-        headers: {
-          "Accept": "audio/mpeg",
-        },
-      }
-    );
+    // Use RapidAPI for MP3 conversion (works on Netlify)
+    const rapidApiKey = process.env.RAPIDAPI_KEY || "1f88695774msh719cb026ed51d53p188d16jsn409cfafa8249";
+    const rapidApiHost = "youtube-video-download-info.p.rapidapi.com";
 
-    console.log(`[MP3 Conversion] Response status: ${response.status}`);
-    console.log(`[MP3 Conversion] Response headers:`, {
-      contentType: response.headers.get("content-type"),
-      contentLength: response.headers.get("content-length"),
+    const rapidUrl = `https://${rapidApiHost}/dl?id=${encodeURIComponent(videoId)}`;
+
+    const response = await fetch(rapidUrl, {
+      method: "GET",
+      headers: {
+        "X-RapidAPI-Key": rapidApiKey,
+        "X-RapidAPI-Host": rapidApiHost,
+      },
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`[MP3 Conversion] Error response: ${errorText}`);
+    const data = await response.json();
+
+    if (!response.ok || !data.mp3) {
       return NextResponse.json(
-        { error: `Failed to convert to MP3: ${response.status}` },
-        { status: response.status }
+        { error: "Failed to convert to MP3", details: data.error || "Unknown error" },
+        { status: 502 }
       );
     }
 
-    // Get the audio stream
-    const buffer = await response.arrayBuffer();
-    console.log(`[MP3 Conversion] Received buffer size: ${buffer.byteLength} bytes`);
-
-    if (buffer.byteLength === 0) {
-      console.error("[MP3 Conversion] Buffer is empty!");
-      return NextResponse.json(
-        { error: "MP3 conversion returned empty file" },
-        { status: 500 }
-      );
-    }
-
-    // Return the MP3 file with proper headers
-    return new NextResponse(buffer, {
-      status: 200,
-      headers: {
-        "Content-Type": "audio/mpeg",
-        "Content-Length": buffer.byteLength.toString(),
-        "Content-Disposition": `attachment; filename="${(
-          title || videoId
-        ).replace(/[^a-z0-9]/gi, "_")}.mp3"`,
-      },
+    // Return the MP3 URL for download
+    return NextResponse.json({
+      downloadUrl: data.mp3,
+      title: data.title || title || videoId,
     });
   } catch (error) {
     console.error("[MP3 Conversion] Error:", error);
